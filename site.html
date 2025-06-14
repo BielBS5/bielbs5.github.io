@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Coleção Pokémon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        .card-item {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .card-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        .modal {
+            display: none;
+            transition: opacity 0.3s ease;
+        }
+        .modal.show {
+            display: flex;
+        }
+        #notification {
+            transition: transform 0.5s, opacity 0.5s;
+            transform: translateY(-100%);
+            opacity: 0;
+        }
+        #notification.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .rarity-badge {
+            font-size: 0.7rem;
+            padding: 2px 8px;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Notification element -->
+    <div id="notification" class="fixed top-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-md z-50"></div>
+
+    <!-- Rarity Guide Modal -->
+    <div id="rarityGuideModal" class="modal fixed inset-0 bg-black bg-opacity-60 items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-lg p-6 relative">
+             <h2 class="text-2xl font-bold mb-4 text-gray-700">Guia de Raridade</h2>
+             <p class="text-gray-600 mb-4">Os símbolos de raridade geralmente se encontram no canto inferior direito da carta.</p>
+             <img src="https://placehold.co/600x400/ffffff/333333?text=Guia+Visual+de+Raridade%0A(C%C3%ADrculo:+Comum%0ALosango:+Incomum%0AEstrela:+Raro)" alt="Guia de Raridade" class="w-full rounded-md">
+             <button id="closeRarityGuide" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+        </div>
+    </div>
+
+    <!-- Add Card Modal -->
+    <div id="addCardModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-40">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md p-6 relative">
+            <h2 class="text-2xl font-bold mb-6 text-gray-700">Adicionar Nova Carta</h2>
+            <form id="addCardForm">
+                <div class="mb-4">
+                    <label for="cardName" class="block text-sm font-medium text-gray-600 mb-1">Nome da Carta</label>
+                    <input type="text" id="cardName" name="cardName" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="mb-4">
+                    <label for="cardCollection" class="block text-sm font-medium text-gray-600 mb-1">Coleção</label>
+                    <input type="text" id="cardCollection" name="cardCollection" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                 <div class="mb-4">
+                    <label for="imageUrl" class="block text-sm font-medium text-gray-600 mb-1">URL da Imagem</label>
+                    <input type="url" id="imageUrl" name="imageUrl" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label for="cardType" class="block text-sm font-medium text-gray-600 mb-1">Tipo da Carta</label>
+                        <select id="cardType" name="cardType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="Pokémon">Pokémon</option>
+                            <option value="Treinador">Treinador</option>
+                            <option value="Energia">Energia</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="cardYear" class="block text-sm font-medium text-gray-600 mb-1">Ano</label>
+                        <input type="number" id="cardYear" name="cardYear" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" min="1995" max="2099" step="1" required>
+                    </div>
+                    <div>
+                         <label for="cardRarity" class="block text-sm font-medium text-gray-600 mb-1">
+                            Raridade
+                            <i id="openRarityGuide" class="fas fa-question-circle text-blue-500 cursor-pointer ml-1"></i>
+                        </label>
+                        <select id="cardRarity" name="cardRarity" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="Comum">Comum</option>
+                            <option value="Incomum">Incomum</option>
+                            <option value="Raro">Raro</option>
+                            <option value="Raro Holo">Raro Holo</option>
+                            <option value="Ultra Raro">Ultra Raro</option>
+                            <option value="Secreto Raro">Secreto Raro</option>
+                        </select>
+                    </div>
+                     <div>
+                        <label for="cardFinish" class="block text-sm font-medium text-gray-600 mb-1">Acabamento</label>
+                        <select id="cardFinish" name="cardFinish" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <option value="Normal">Normal</option>
+                            <option value="Foil">Foil (Holográfica)</option>
+                            <option value="Reverse Foil">Reverse Foil</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-4 mt-6">
+                    <button type="button" id="cancelAddCard" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 font-semibold">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold">Adicionar Carta</button>
+                </div>
+            </form>
+            <button id="closeModal" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+        </div>
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirmModal" class="modal fixed inset-0 bg-black bg-opacity-50 items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 relative">
+            <h3 class="text-xl font-bold mb-4 text-gray-700" id="confirmModalTitle">Confirmação</h3>
+            <p class="text-gray-600 mb-6" id="confirmModalMessage">Tem certeza?</p>
+            <div class="flex justify-end space-x-4">
+                <button id="cancelConfirm" class="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 font-semibold">Cancelar</button>
+                <button id="confirmAction" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-semibold">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container mx-auto p-4 sm:p-6 lg:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl sm:text-5xl font-bold text-gray-800">Minha Coleção Pokémon</h1>
+            <p class="text-gray-500 mt-2">Seu catálogo pessoal de cartas Pokémon.</p>
+            <p id="userIdDisplay" class="text-xs text-gray-400 mt-2"></p>
+        </header>
+
+        <!-- Controls -->
+        <div class="bg-white rounded-lg shadow p-4 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                <input type="text" id="filterName" placeholder="Filtrar por nome..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                 <select id="filterCollection" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Todas as Coleções</option>
+                    <!-- Options will be populated by JS -->
+                </select>
+                <select id="filterType" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Todos os Tipos</option>
+                    <option value="Pokémon">Pokémon</option>
+                    <option value="Treinador">Treinador</option>
+                    <option value="Energia">Energia</option>
+                </select>
+                <select id="filterRarity" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Todas Raridades</option>
+                    <option value="Comum">Comum</option>
+                    <option value="Incomum">Incomum</option>
+                    <option value="Raro">Raro</option>
+                    <option value="Raro Holo">Raro Holo</option>
+                    <option value="Ultra Raro">Ultra Raro</option>
+                    <option value="Secreto Raro">Secreto Raro</option>
+                </select>
+                 <select id="filterFinish" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Todos Acabamentos</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Foil">Foil</option>
+                    <option value="Reverse Foil">Reverse Foil</option>
+                </select>
+            </div>
+             <div class="flex justify-end mt-4">
+                <button id="openAddCardModal" class="w-full sm:w-auto px-5 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold flex items-center justify-center gap-2">
+                    <i class="fas fa-plus"></i>
+                    <span>Adicionar Carta</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Card Grid -->
+        <div id="cardGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"></div>
+        
+        <div id="loading" class="text-center py-10"><p class="text-gray-500">Carregando sua coleção...</p></div>
+        <div id="emptyState" class="hidden text-center py-10 px-6 bg-white rounded-lg shadow">
+            <h3 class="text-xl font-semibold text-gray-700">Nenhuma carta encontrada.</h3>
+            <p class="text-gray-500 mt-2">Comece a adicionar cartas à sua coleção!</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-pokemon-app';
+
+        let db, auth, userId;
+        let allCards = [];
+
+        // --- UI ELEMENTS ---
+        const addModal = document.getElementById('addCardModal');
+        const rarityModal = document.getElementById('rarityGuideModal');
+        const confirmModal = document.getElementById('confirmModal'); // New confirmation modal
+        const confirmModalTitle = document.getElementById('confirmModalTitle');
+        const confirmModalMessage = document.getElementById('confirmModalMessage');
+        const confirmActionButton = document.getElementById('confirmAction');
+        const cancelConfirmButton = document.getElementById('cancelConfirm');
+
+
+        const openAddModalBtn = document.getElementById('openAddCardModal');
+        const openRarityGuideBtn = document.getElementById('openRarityGuide');
+        const addCardForm = document.getElementById('addCardForm');
+        const cardGrid = document.getElementById('cardGrid');
+        const loadingIndicator = document.getElementById('loading');
+        const emptyState = document.getElementById('emptyState');
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        const notification = document.getElementById('notification');
+        
+        // Filter elements
+        const filters = {
+            name: document.getElementById('filterName'),
+            type: document.getElementById('filterType'),
+            collection: document.getElementById('filterCollection'),
+            rarity: document.getElementById('filterRarity'),
+            finish: document.getElementById('filterFinish'),
+        };
+        
+        const rarityColors = {
+            'Comum': 'bg-gray-400 text-white',
+            'Incomum': 'bg-green-500 text-white',
+            'Raro': 'bg-blue-500 text-white',
+            'Raro Holo': 'bg-indigo-500 text-white',
+            'Ultra Raro': 'bg-purple-600 text-white',
+            'Secreto Raro': 'bg-pink-600 text-white'
+        };
+
+        // --- FUNCTIONS ---
+        function showNotification(message, isError = false) {
+            notification.textContent = message;
+            notification.className = `fixed top-5 right-5 text-white py-2 px-4 rounded-lg shadow-md z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
+            notification.classList.add('show');
+            setTimeout(() => { notification.classList.remove('show'); }, 3000);
+        }
+
+        /**
+         * Populates the collection filter dropdown with unique collections from the cards.
+         */
+        function populateCollectionFilter() {
+            const collectionFilterSelect = filters.collection;
+            const existingValue = collectionFilterSelect.value;
+            
+            // Use a Set to get unique collection names
+            const collections = [...new Set(allCards.map(card => card.collection))];
+            collections.sort(); // Sort alphabetically
+
+            // Clear existing options but keep the "All" option
+            collectionFilterSelect.innerHTML = '<option value="">Todas as Coleções</option>';
+
+            collections.forEach(collection => {
+                const option = document.createElement('option');
+                option.value = collection;
+                option.textContent = collection;
+                collectionFilterSelect.appendChild(option);
+            });
+            
+            // Restore previously selected value if it still exists
+            collectionFilterSelect.value = existingValue;
+        }
+
+        function renderCards() {
+            cardGrid.innerHTML = '';
+            
+            const nameFilterVal = filters.name.value.toLowerCase();
+            const typeFilterVal = filters.type.value;
+            const collectionFilterVal = filters.collection.value;
+            const rarityFilterVal = filters.rarity.value;
+            const finishFilterVal = filters.finish.value;
+
+            const filteredCards = allCards.filter(card => {
+                const nameMatch = card.name.toLowerCase().includes(nameFilterVal);
+                const typeMatch = !typeFilterVal || card.cardType === typeFilterVal;
+                const collectionMatch = !collectionFilterVal || card.collection === collectionFilterVal;
+                const rarityMatch = !rarityFilterVal || card.rarity === rarityFilterVal;
+                const finishMatch = !finishFilterVal || card.finish === finishFilterVal;
+                return nameMatch && typeMatch && collectionMatch && rarityMatch && finishMatch;
+            });
+
+            if (filteredCards.length > 0) {
+                loadingIndicator.style.display = 'none';
+                emptyState.classList.add('hidden');
+                cardGrid.classList.remove('hidden');
+
+                filteredCards.forEach(card => {
+                    const cardElement = document.createElement('div');
+                    cardElement.className = 'card-item bg-white rounded-lg shadow-md overflow-hidden flex flex-col';
+                    const rarityColor = rarityColors[card.rarity] || 'bg-gray-200 text-gray-800';
+                    cardElement.innerHTML = `
+                        <img src="${card.imageUrl}" alt="${card.name}" class="w-full h-48 object-contain bg-gray-200 p-2" onerror="this.onerror=null;this.src='https://placehold.co/400x560/e2e8f0/333333?text=Imagem+N%C3%A3o+Encontrada';">
+                        <div class="p-4 flex flex-col flex-grow">
+                            <h3 class="text-lg font-bold text-gray-800">${card.name}</h3>
+                            <p class="text-sm text-gray-500">${card.collection} - ${card.year}</p>
+                            <div class="flex flex-wrap gap-2 mt-2">
+                                <span class="rarity-badge font-semibold uppercase rounded-full ${rarityColor}">${card.rarity}</span>
+                                <span class="rarity-badge font-semibold uppercase rounded-full bg-yellow-400 text-gray-800">${card.finish}</span>
+                                <span class="rarity-badge font-semibold uppercase rounded-full bg-cyan-200 text-cyan-800">${card.cardType}</span>
+                            </div>
+                            <div class="mt-auto pt-4 flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <button data-id="${card.id}" data-action="decrease" class="quantity-btn bg-gray-200 text-gray-700 h-8 w-8 rounded-full font-bold text-lg flex items-center justify-center hover:bg-gray-300">-</button>
+                                    <span class="font-bold text-xl text-gray-800">${card.quantity}</span>
+                                    <button data-id="${card.id}" data-action="increase" class="quantity-btn bg-gray-200 text-gray-700 h-8 w-8 rounded-full font-bold text-lg flex items-center justify-center hover:bg-gray-300">+</button>
+                                </div>
+                                <button data-id="${card.id}" data-action="delete" class="delete-btn text-red-500 hover:text-red-700"><i class="fas fa-trash-alt"></i></button>
+                            </div>
+                        </div>`;
+                    cardGrid.appendChild(cardElement);
+                });
+            } else if (allCards.length === 0) {
+                loadingIndicator.style.display = 'none';
+                cardGrid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+            } else {
+                cardGrid.innerHTML = `<div class="col-span-full text-center py-10 px-6 bg-white rounded-lg shadow"><h3 class="text-xl font-semibold text-gray-700">Nenhum resultado encontrado.</h3><p class="text-gray-500 mt-2">Tente ajustar seus filtros.</p></div>`;
+            }
+        }
+
+        function getCards() {
+            loadingIndicator.style.display = 'block';
+            emptyState.classList.add('hidden');
+            
+            const cardsCollectionPath = `/artifacts/${appId}/users/${userId}/cards`;
+            const q = query(collection(db, cardsCollectionPath));
+
+            onSnapshot(q, (snapshot) => {
+                allCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                allCards.sort((a, b) => a.name.localeCompare(b.name));
+                populateCollectionFilter(); // Update filter options
+                renderCards(); // Render the cards
+            }, (error) => {
+                console.error("Error fetching cards: ", error);
+                showNotification("Erro ao carregar a coleção.", true);
+                loadingIndicator.style.display = 'none';
+            });
+        }
+
+        async function handleAddCard(e) {
+            e.preventDefault();
+            const formData = new FormData(addCardForm);
+            const newCard = {
+                name: formData.get('cardName'),
+                collection: formData.get('cardCollection'),
+                imageUrl: formData.get('imageUrl'),
+                cardType: formData.get('cardType'),
+                year: Number(formData.get('cardYear')),
+                rarity: formData.get('cardRarity'),
+                finish: formData.get('cardFinish'),
+                quantity: 1,
+                userId: userId
+            };
+
+            try {
+                const cardsCollectionPath = `/artifacts/${appId}/users/${userId}/cards`;
+                await addDoc(collection(db, cardsCollectionPath), newCard);
+                showNotification("Carta adicionada com sucesso!");
+                addCardForm.reset();
+                addModal.classList.remove('show');
+            } catch (error) {
+                console.error("Error adding card: ", error);
+                showNotification("Erro ao adicionar a carta.", true);
+            }
+        }
+
+        // Helper function to show custom confirmation modal
+        function showConfirmModal(title, message, onConfirm) {
+            confirmModalTitle.textContent = title;
+            confirmModalMessage.textContent = message;
+            confirmModal.classList.add('show');
+
+            const handleConfirm = () => {
+                onConfirm();
+                confirmModal.classList.remove('show');
+                confirmActionButton.removeEventListener('click', handleConfirm);
+                cancelConfirmButton.removeEventListener('click', handleCancel);
+            };
+
+            const handleCancel = () => {
+                confirmModal.classList.remove('show');
+                confirmActionButton.removeEventListener('click', handleConfirm);
+                cancelConfirmButton.removeEventListener('click', handleCancel);
+            };
+
+            confirmActionButton.addEventListener('click', handleConfirm);
+            cancelConfirmButton.addEventListener('click', handleCancel);
+        }
+
+        async function handleGridClick(e) {
+            const button = e.target.closest('button');
+            if (!button) return;
+
+            const action = button.dataset.action;
+            const cardId = button.dataset.id;
+            if (!action || !cardId) return;
+            
+            const cardRef = doc(db, `/artifacts/${appId}/users/${userId}/cards`, cardId);
+            const card = allCards.find(c => c.id === cardId);
+            if (!card) return;
+
+            try {
+                if (action === 'increase') {
+                    await updateDoc(cardRef, { quantity: card.quantity + 1 });
+                } else if (action === 'decrease') {
+                    if (card.quantity > 1) {
+                        await updateDoc(cardRef, { quantity: card.quantity - 1 });
+                    } else {
+                        showConfirmModal(
+                            "Remover Carta?", 
+                            "A quantidade é 1. Deseja remover esta carta da coleção?", 
+                            async () => {
+                                await deleteDoc(cardRef);
+                                showNotification("Carta removida.");
+                            }
+                        );
+                    }
+                } else if (action === 'delete') {
+                    showConfirmModal(
+                        "Excluir Permanentemente?", 
+                        "Tem certeza de que quer apagar permanentemente esta carta?", 
+                        async () => {
+                            await deleteDoc(cardRef);
+                            showNotification("Carta removida com sucesso.");
+                        }
+                    );
+                }
+            } catch (error) {
+                 console.error(`Error performing action ${action}:`, error);
+                 showNotification("Ocorreu um erro.", true);
+            }
+        }
+        
+        // --- EVENT LISTENERS ---
+        openAddModalBtn.addEventListener('click', () => addModal.classList.add('show'));
+        addModal.querySelector('#closeModal').addEventListener('click', () => addModal.classList.remove('show'));
+        addModal.querySelector('#cancelAddCard').addEventListener('click', () => addModal.classList.remove('show'));
+        
+        openRarityGuideBtn.addEventListener('click', () => rarityModal.classList.add('show'));
+        rarityModal.querySelector('#closeRarityGuide').addEventListener('click', () => rarityModal.classList.remove('show'));
+
+        addCardForm.addEventListener('submit', handleAddCard);
+        cardGrid.addEventListener('click', handleGridClick);
+
+        Object.values(filters).forEach(el => {
+            el.addEventListener('input', renderCards);
+            el.addEventListener('change', renderCards);
+        });
+
+        // --- INITIALIZATION ---
+        async function main() {
+            try {
+                // Log the config to ensure it's not empty
+                console.log("Firebase Config:", firebaseConfig);
+                console.log("App ID:", appId);
+
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        userId = user.uid;
+                        userIdDisplay.textContent = `ID do Usuário: ${userId}`;
+                        getCards();
+                    } else {
+                        userId = null;
+                        cardGrid.innerHTML = '';
+                        loadingIndicator.style.display = 'none';
+                        emptyState.classList.remove('hidden');
+                        emptyState.querySelector('h3').textContent = 'Por favor, faça login para ver sua coleção.';
+                    }
+                });
+                
+                const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                if (initialToken) {
+                    await signInWithCustomToken(auth, initialToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+            } catch (error) {
+                // Log the specific error for debugging
+                console.error("Firebase initialization failed:", error);
+                document.body.innerHTML = `<div class="p-4 bg-red-100 text-red-700">Erro fatal: Não foi possível conectar ao banco de dados. Por favor, verifique o console do navegador para detalhes: <code class="font-mono">${error.message || error}</code></div>`;
+            }
+        }
+
+        main();
+    </script>
+</body>
+</html>
