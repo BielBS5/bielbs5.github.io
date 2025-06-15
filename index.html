@@ -185,11 +185,24 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-pokemon-app';
+        // PASSO 1: COLE AQUI A CONFIGURAÇÃO DO SEU PROJETO FIREBASE
+        // Substitua este objeto pelo que você copiou do console do Firebase
+        const firebaseConfig = {
+          apiKey: "SUA_API_KEY",
+          authDomain: "SEU_AUTH_DOMAIN",
+          projectId: "SEU_PROJECT_ID",
+          storageBucket: "SEU_STORAGE_BUCKET",
+          messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+          appId: "SEU_APP_ID"
+        };
+
+        // PASSO 2: Defina um ID único para seu app. Pode ser qualquer nome.
+        const appId = 'minha-colecao-pokemon-app';
+
+        // --- Daqui para baixo, não precisa mudar nada ---
 
         let db, auth, userId;
         let allCards = [];
@@ -206,7 +219,6 @@
         const userIdDisplay = document.getElementById('userIdDisplay');
         const notification = document.getElementById('notification');
         
-        // Filter elements
         const filters = {
             name: document.getElementById('filterName'),
             type: document.getElementById('filterType'),
@@ -216,15 +228,10 @@
         };
         
         const rarityColors = {
-            'Comum': 'bg-gray-400 text-white',
-            'Incomum': 'bg-green-500 text-white',
-            'Raro': 'bg-blue-500 text-white',
-            'Raro Holo': 'bg-indigo-500 text-white',
-            'Ultra Raro': 'bg-purple-600 text-white',
-            'Secreto Raro': 'bg-pink-600 text-white'
+            'Comum': 'bg-gray-400 text-white', 'Incomum': 'bg-green-500 text-white', 'Raro': 'bg-blue-500 text-white',
+            'Raro Holo': 'bg-indigo-500 text-white', 'Ultra Raro': 'bg-purple-600 text-white', 'Secreto Raro': 'bg-pink-600 text-white'
         };
 
-        // FUNCTIONS
         function showNotification(message, isError = false) {
             notification.textContent = message;
             notification.className = `fixed top-5 right-5 text-white py-2 px-4 rounded-lg shadow-md z-50 ${isError ? 'bg-red-500' : 'bg-green-500'}`;
@@ -258,14 +265,13 @@
             const rarityFilterVal = filters.rarity.value;
             const finishFilterVal = filters.finish.value;
 
-            const filteredCards = allCards.filter(card => {
-                const nameMatch = card.name.toLowerCase().includes(nameFilterVal);
-                const typeMatch = !typeFilterVal || card.cardType === typeFilterVal;
-                const collectionMatch = !collectionFilterVal || card.collection === collectionFilterVal;
-                const rarityMatch = !rarityFilterVal || card.rarity === rarityFilterVal;
-                const finishMatch = !finishFilterVal || card.finish === finishFilterVal;
-                return nameMatch && typeMatch && collectionMatch && rarityMatch && finishMatch;
-            });
+            const filteredCards = allCards.filter(card => 
+                card.name.toLowerCase().includes(nameFilterVal) &&
+                (!typeFilterVal || card.cardType === typeFilterVal) &&
+                (!collectionFilterVal || card.collection === collectionFilterVal) &&
+                (!rarityFilterVal || card.rarity === rarityFilterVal) &&
+                (!finishFilterVal || card.finish === finishFilterVal)
+            );
 
             if (filteredCards.length > 0) {
                 loadingIndicator.style.display = 'none';
@@ -332,16 +338,9 @@
             e.preventDefault();
             const formData = new FormData(addCardForm);
             const newCard = {
-                name: formData.get('cardName'),
-                collection: formData.get('cardCollection'),
-                number: formData.get('cardNumber'),
-                imageUrl: formData.get('imageUrl'),
-                cardType: formData.get('cardType'),
-                year: Number(formData.get('cardYear')),
-                rarity: formData.get('cardRarity'),
-                finish: formData.get('cardFinish'),
-                quantity: 1,
-                userId: userId
+                name: formData.get('cardName'), collection: formData.get('cardCollection'), number: formData.get('cardNumber'),
+                imageUrl: formData.get('imageUrl'), cardType: formData.get('cardType'), year: Number(formData.get('cardYear')),
+                rarity: formData.get('cardRarity'), finish: formData.get('cardFinish'), quantity: 1, userId: userId
             };
 
             try {
@@ -369,12 +368,10 @@
             if (!card) return;
 
             try {
-                if (action === 'increase') {
-                    await updateDoc(cardRef, { quantity: card.quantity + 1 });
-                } else if (action === 'decrease') {
-                    if (card.quantity > 1) {
-                        await updateDoc(cardRef, { quantity: card.quantity - 1 });
-                    } else if (confirm("A quantidade é 1. Deseja remover esta carta da coleção?")) {
+                if (action === 'increase') { await updateDoc(cardRef, { quantity: card.quantity + 1 }); } 
+                else if (action === 'decrease') {
+                    if (card.quantity > 1) { await updateDoc(cardRef, { quantity: card.quantity - 1 }); } 
+                    else if (confirm("A quantidade é 1. Deseja remover esta carta da coleção?")) {
                         await deleteDoc(cardRef);
                         showNotification("Carta removida.");
                     }
@@ -390,23 +387,15 @@
             }
         }
         
-        // EVENT LISTENERS
         openAddModalBtn.addEventListener('click', () => addModal.classList.add('show'));
         addModal.querySelector('#closeModal').addEventListener('click', () => addModal.classList.remove('show'));
         addModal.querySelector('#cancelAddCard').addEventListener('click', () => addModal.classList.remove('show'));
-        
         openRarityGuideBtn.addEventListener('click', () => rarityModal.classList.add('show'));
         rarityModal.querySelector('#closeRarityGuide').addEventListener('click', () => rarityModal.classList.remove('show'));
-
         addCardForm.addEventListener('submit', handleAddCard);
         cardGrid.addEventListener('click', handleGridClick);
+        Object.values(filters).forEach(el => { el.addEventListener('input', renderCards); el.addEventListener('change', renderCards); });
 
-        Object.values(filters).forEach(el => {
-            el.addEventListener('input', renderCards);
-            el.addEventListener('change', renderCards);
-        });
-
-        // INITIALIZATION
         async function main() {
             try {
                 const app = initializeApp(firebaseConfig);
@@ -416,31 +405,22 @@
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
                         userId = user.uid;
-                        userIdDisplay.textContent = `ID do Usuário: ${userId}`;
+                        userIdDisplay.textContent = `Sessão Anônima: ${userId.substring(0, 8)}...`;
                         getCards();
                     } else {
-                        userId = null;
-                        cardGrid.innerHTML = '';
-                        loadingIndicator.style.display = 'none';
-                        emptyState.classList.remove('hidden');
-                        emptyState.querySelector('h3').textContent = 'Por favor, faça login para ver sua coleção.';
+                        signInAnonymously(auth).catch(err => {
+                             console.error("Anonymous sign-in failed:", err);
+                             showNotification("Falha na autenticação. Tente recarregar a página.", true);
+                        });
                     }
                 });
-                
-                const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                if (initialToken) {
-                    await signInWithCustomToken(auth, initialToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
-                document.body.innerHTML = `<div class="p-4 bg-red-100 text-red-700">Erro fatal: Não foi possível conectar ao banco de dados.</div>`;
+                document.body.innerHTML = `<div class="p-4 bg-red-100 text-red-700">Erro fatal: Não foi possível conectar ao banco de dados. Verifique a configuração do Firebase no seu código.</div>`;
             }
         }
-
         main();
     </script>
 </body>
 </html>
+
