@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciador de Coleção Pokémon</title>
+    <title>Gerenciador de Coleção Pokémon (Público)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -131,9 +131,8 @@
     <!-- Main Content -->
     <div class="container mx-auto p-4 sm:p-6 lg:p-8">
         <header class="text-center mb-8">
-            <h1 class="text-4xl sm:text-5xl font-bold text-gray-800">Minha Coleção Pokémon</h1>
-            <p class="text-gray-500 mt-2">Seu catálogo pessoal de cartas Pokémon.</p>
-            <p id="userIdDisplay" class="text-xs text-gray-400 mt-2"></p>
+            <h1 class="text-4xl sm:text-5xl font-bold text-gray-800">Nossa Coleção Pokémon</h1>
+            <p class="text-gray-500 mt-2">Um catálogo compartilhado para todos os amigos!</p>
         </header>
 
         <!-- Controls -->
@@ -176,10 +175,10 @@
         <!-- Card Grid -->
         <div id="cardGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6"></div>
         
-        <div id="loading" class="text-center py-10"><p class="text-gray-500">Carregando sua coleção...</p></div>
+        <div id="loading" class="text-center py-10"><p class="text-gray-500">Carregando a coleção compartilhada...</p></div>
         <div id="emptyState" class="hidden text-center py-10 px-6 bg-white rounded-lg shadow">
             <h3 class="text-xl font-semibold text-gray-700">Nenhuma carta encontrada.</h3>
-            <p class="text-gray-500 mt-2">Comece a adicionar cartas à sua coleção!</p>
+            <p class="text-gray-500 mt-2">Sejam os primeiros a adicionar cartas à coleção!</p>
         </div>
     </div>
 
@@ -188,24 +187,22 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, collection, addDoc, onSnapshot, updateDoc, deleteDoc, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // PASSO 1: COLE AQUI A CONFIGURAÇÃO DO SEU PROJETO FIREBASE
-        // Substitua este objeto pelo que você copiou do console do Firebase
+        // Cole aqui a configuração do seu projeto Firebase que já estava usando
         const firebaseConfig = {
           apiKey: "AIzaSyBLeAgG9B3Uc2fi5ykIFzACofCl1pAJEr8",
-  authDomain: "htmlpokedex-4df16.firebaseapp.com",
-  projectId: "htmlpokedex-4df16",
-  storageBucket: "htmlpokedex-4df16.firebasestorage.app",
-  messagingSenderId: "579882084866",
-  appId: "1:579882084866:web:adf5247d9ba69856fbd51b",
-  measurementId: "G-YFM3B7V0W3"
+          authDomain: "htmlpokedex-4df16.firebaseapp.com",
+          projectId: "htmlpokedex-4df16",
+          storageBucket: "htmlpokedex-4df16.appspot.com", // corrigido de .firebasestorage.app
+          messagingSenderId: "579882084866",
+          appId: "1:579882084866:web:adf5247d9ba69856fbd51b"
         };
-
-        // PASSO 2: Defina um ID único para seu app. Pode ser qualquer nome.
+        
+        // ID único do app, pode manter o mesmo
         const appId = 'minha-colecao-pokemon-app';
 
-        // --- Daqui para baixo, não precisa mudar nada ---
+        // --- Daqui para baixo, a lógica foi ajustada para uma coleção pública ---
 
-        let db, auth, userId;
+        let db, auth;
         let allCards = [];
 
         // UI ELEMENTS
@@ -217,14 +214,11 @@
         const cardGrid = document.getElementById('cardGrid');
         const loadingIndicator = document.getElementById('loading');
         const emptyState = document.getElementById('emptyState');
-        const userIdDisplay = document.getElementById('userIdDisplay');
         const notification = document.getElementById('notification');
         
         const filters = {
-            name: document.getElementById('filterName'),
-            type: document.getElementById('filterType'),
-            collection: document.getElementById('filterCollection'),
-            rarity: document.getElementById('filterRarity'),
+            name: document.getElementById('filterName'), type: document.getElementById('filterType'),
+            collection: document.getElementById('filterCollection'), rarity: document.getElementById('filterRarity'),
             finish: document.getElementById('filterFinish'),
         };
         
@@ -245,7 +239,6 @@
             const existingValue = collectionFilterSelect.value;
             const collections = [...new Set(allCards.map(card => card.collection))];
             collections.sort(); 
-
             collectionFilterSelect.innerHTML = '<option value="">Todas as Coleções</option>';
             collections.forEach(collection => {
                 const option = document.createElement('option');
@@ -253,32 +246,27 @@
                 option.textContent = collection;
                 collectionFilterSelect.appendChild(option);
             });
-            
             collectionFilterSelect.value = existingValue;
         }
 
         function renderCards() {
             cardGrid.innerHTML = '';
-            
-            const nameFilterVal = filters.name.value.toLowerCase();
-            const typeFilterVal = filters.type.value;
-            const collectionFilterVal = filters.collection.value;
-            const rarityFilterVal = filters.rarity.value;
-            const finishFilterVal = filters.finish.value;
-
+            const filterVals = {
+                name: filters.name.value.toLowerCase(), type: filters.type.value,
+                collection: filters.collection.value, rarity: filters.rarity.value, finish: filters.finish.value,
+            };
             const filteredCards = allCards.filter(card => 
-                card.name.toLowerCase().includes(nameFilterVal) &&
-                (!typeFilterVal || card.cardType === typeFilterVal) &&
-                (!collectionFilterVal || card.collection === collectionFilterVal) &&
-                (!rarityFilterVal || card.rarity === rarityFilterVal) &&
-                (!finishFilterVal || card.finish === finishFilterVal)
+                card.name.toLowerCase().includes(filterVals.name) &&
+                (!filterVals.type || card.cardType === filterVals.type) &&
+                (!filterVals.collection || card.collection === filterVals.collection) &&
+                (!filterVals.rarity || card.rarity === filterVals.rarity) &&
+                (!filterVals.finish || card.finish === filterVals.finish)
             );
 
+            loadingIndicator.style.display = 'none';
             if (filteredCards.length > 0) {
-                loadingIndicator.style.display = 'none';
                 emptyState.classList.add('hidden');
                 cardGrid.classList.remove('hidden');
-
                 filteredCards.forEach(card => {
                     const cardElement = document.createElement('div');
                     cardElement.className = 'card-item bg-white rounded-lg shadow-md overflow-hidden flex flex-col';
@@ -287,10 +275,7 @@
                         <img src="${card.imageUrl}" alt="${card.name}" class="w-full h-48 object-contain bg-gray-200 p-2" onerror="this.onerror=null;this.src='https://placehold.co/400x560/e2e8f0/333333?text=Imagem+N%C3%A3o+Encontrada';">
                         <div class="p-4 flex flex-col flex-grow">
                             <h3 class="text-lg font-bold text-gray-800">${card.name}</h3>
-                            <div class="flex justify-between items-center">
-                                <p class="text-sm text-gray-500">${card.collection}</p>
-                                <p class="text-sm font-semibold text-gray-600">${card.number || ''}</p>
-                            </div>
+                            <div class="flex justify-between items-center"><p class="text-sm text-gray-500">${card.collection}</p><p class="text-sm font-semibold text-gray-600">${card.number || ''}</p></div>
                             <div class="flex flex-wrap gap-2 mt-2">
                                 <span class="rarity-badge font-semibold uppercase rounded-full ${rarityColor}">${card.rarity}</span>
                                 <span class="rarity-badge font-semibold uppercase rounded-full bg-yellow-400 text-gray-800">${card.finish}</span>
@@ -308,7 +293,6 @@
                     cardGrid.appendChild(cardElement);
                 });
             } else if (allCards.length === 0) {
-                loadingIndicator.style.display = 'none';
                 cardGrid.classList.add('hidden');
                 emptyState.classList.remove('hidden');
             } else {
@@ -320,8 +304,9 @@
             loadingIndicator.style.display = 'block';
             emptyState.classList.add('hidden');
             
-            const cardsCollectionPath = `/artifacts/${appId}/users/${userId}/cards`;
-            const q = query(collection(db, cardsCollectionPath));
+            // CAMINHO PÚBLICO: todos os usuários leem e escrevem aqui.
+            const publicCollectionPath = `/artifacts/${appId}/public/data/cards`;
+            const q = query(collection(db, publicCollectionPath));
 
             onSnapshot(q, (snapshot) => {
                 allCards = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -330,7 +315,7 @@
                 renderCards();
             }, (error) => {
                 console.error("Error fetching cards: ", error);
-                showNotification("Erro ao carregar a coleção.", true);
+                showNotification("Erro ao carregar a coleção compartilhada.", true);
                 loadingIndicator.style.display = 'none';
             });
         }
@@ -341,13 +326,13 @@
             const newCard = {
                 name: formData.get('cardName'), collection: formData.get('cardCollection'), number: formData.get('cardNumber'),
                 imageUrl: formData.get('imageUrl'), cardType: formData.get('cardType'), year: Number(formData.get('cardYear')),
-                rarity: formData.get('cardRarity'), finish: formData.get('cardFinish'), quantity: 1, userId: userId
+                rarity: formData.get('cardRarity'), finish: formData.get('cardFinish'), quantity: 1
             };
 
             try {
-                const cardsCollectionPath = `/artifacts/${appId}/users/${userId}/cards`;
-                await addDoc(collection(db, cardsCollectionPath), newCard);
-                showNotification("Carta adicionada com sucesso!");
+                const publicCollectionPath = `/artifacts/${appId}/public/data/cards`;
+                await addDoc(collection(db, publicCollectionPath), newCard);
+                showNotification("Carta adicionada à coleção compartilhada!");
                 addCardForm.reset();
                 addModal.classList.remove('show');
             } catch (error) {
@@ -359,12 +344,12 @@
         async function handleGridClick(e) {
             const button = e.target.closest('button');
             if (!button) return;
-
             const action = button.dataset.action;
             const cardId = button.dataset.id;
             if (!action || !cardId) return;
             
-            const cardRef = doc(db, `/artifacts/${appId}/users/${userId}/cards`, cardId);
+            const publicCollectionPath = `/artifacts/${appId}/public/data/cards`;
+            const cardRef = doc(db, publicCollectionPath, cardId);
             const card = allCards.find(c => c.id === cardId);
             if (!card) return;
 
@@ -372,12 +357,12 @@
                 if (action === 'increase') { await updateDoc(cardRef, { quantity: card.quantity + 1 }); } 
                 else if (action === 'decrease') {
                     if (card.quantity > 1) { await updateDoc(cardRef, { quantity: card.quantity - 1 }); } 
-                    else if (confirm("A quantidade é 1. Deseja remover esta carta da coleção?")) {
+                    else if (confirm("A quantidade é 1. Deseja remover esta carta da coleção de todos?")) {
                         await deleteDoc(cardRef);
                         showNotification("Carta removida.");
                     }
                 } else if (action === 'delete') {
-                     if (confirm("Tem certeza de que quer apagar permanentemente esta carta?")) {
+                     if (confirm("Tem certeza de que quer apagar permanentemente esta carta da coleção de todos?")) {
                         await deleteDoc(cardRef);
                         showNotification("Carta removida com sucesso.");
                     }
@@ -402,13 +387,12 @@
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
-                        userId = user.uid;
-                        userIdDisplay.textContent = `Sessão Anônima: ${userId.substring(0, 8)}...`;
+                        // Uma vez autenticado (mesmo que anonimamente), busca os dados públicos.
                         getCards();
                     } else {
+                        // Tenta login anônimo se não houver usuário.
                         signInAnonymously(auth).catch(err => {
                              console.error("Anonymous sign-in failed:", err);
                              showNotification("Falha na autenticação. Tente recarregar a página.", true);
@@ -417,11 +401,10 @@
                 });
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
-                document.body.innerHTML = `<div class="p-4 bg-red-100 text-red-700">Erro fatal: Não foi possível conectar ao banco de dados. Verifique a configuração do Firebase no seu código.</div>`;
+                document.body.innerHTML = `<div class="p-4 bg-red-100 text-red-700">Erro fatal: Não foi possível conectar ao banco de dados.</div>`;
             }
         }
         main();
     </script>
 </body>
 </html>
-
